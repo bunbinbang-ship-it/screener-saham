@@ -8,15 +8,9 @@ from textblob import TextBlob
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="StockIntel - Dashboard Analisis Saham", layout="wide")
 
-# Styling CSS untuk tampilan modern
- <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .news-card { padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid; }
-    </style>
-    """, 
-    unsafe_allow_html=True
-)
+# Gunakan versi satu baris ini agar tidak ada masalah spasi (indentasi)
+st.markdown('<style>.main { background-color: #f8f9fa; } .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); } .news-card { padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid; }</style>', unsafe_allow_html=True)
+
 # --- 2. FUNGSI HELPER ---
 @st.cache_data
 def get_stock_data(symbol, p):
