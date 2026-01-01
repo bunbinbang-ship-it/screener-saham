@@ -1,94 +1,96 @@
-import streamlit as st
-import yfinance as yf
-import pandas_ta as ta
-import pandas as pd
-
-# Konfigurasi Dasar
-st.set_page_config(layout="wide", page_title="SAHAMKU")
-
-# CSS untuk desain satu baris dan Menu Bawah
-st.markdown("""
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sahamify Clone - Kalkulator Harga Wajar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-    /* Membuat tulisan SAHAMKU satu baris */
-    .judul-sahamku {
-        font-size: clamp(40px, 10vw, 80px); /* Ukuran fleksibel agar tetap satu baris */
-        font-weight: bold;
-        text-align: center;
-        color: #58a6ff;
-        margin-top: 50px;
-        white-space: nowrap;
-    }
-    
-    /* Navigasi Bawah yang tetap di tempat (Sticky) */
-    .stBottomBlock {
-        position: fixed;
-        bottom: 0;
-        background: #161b22;
-        padding: 10px;
-        z-index: 100;
-    }
-    
-    /* Sembunyikan footer bawaan streamlit agar bersih */
-    footer {visibility: hidden;}
+        .result-card { display: none; }
     </style>
-    """, unsafe_allow_html=True)
+</head>
+<body class="bg-gray-50 font-sans">
 
-# --- HEADER ---
-st.markdown('<div class="judul-sahamku">SAHAMKU</div>', unsafe_allow_html=True)
-st.write("<p style='text-align: center; color: gray;'>Smart Analysis & Portfolio</p>", unsafe_allow_html=True)
+    <nav class="bg-blue-600 p-4 text-white shadow-lg">
+        <div class="container mx-auto font-bold text-xl">Sahamify <span class="font-light text-blue-200 text-sm italic">Clone</span></div>
+    </nav>
 
-# --- FUNGSI ANALISIS CEPAT ---
-def get_fast_data(symbol):
-    try:
-        # Mengambil hanya 40 hari agar super cepat
-        df = yf.download(symbol, period="40d", interval="1d", progress=False, threads=False)
-        if df.empty: return None
-        
-        df['RSI'] = ta.rsi(df['Close'], length=14)
-        df['EMA20'] = ta.ema(df['Close'], length=20)
-        
-        last = df.iloc[-1]
-        price = float(last['Close'])
-        rsi_val = float(last['RSI'])
-        ema_val = float(last['EMA20'])
-        
-        if rsi_val < 35: signal = "🟢 BUY"
-        elif rsi_val > 65: signal = "🔴 SELL"
-        elif price > ema_val: signal = "🟡 HOLD"
-        else: signal = "⚪ WAIT"
-            
-        return {
-            "Emiten": symbol.replace(".JK", ""),
-            "Harga": f"Rp {int(price):,}",
-            "RSI": round(rsi_val, 1),
-            "Sinyal": signal
-        }
-    except: return None
+    <div class="container mx-auto px-4 py-10 max-w-2xl">
+        <div class="bg-white rounded-xl shadow-md p-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2 text-center">Kalkulator Harga Wajar</h1>
+            <p class="text-gray-500 text-center mb-8 italic">Metode Benjamin Graham Revised</p>
 
-# --- TOMBOL ANALISIS ---
-st.markdown("<br>", unsafe_allow_html=True)
-if st.button('🚀 JALANKAN SCAN CEPAT', use_container_width=True):
-    with st.spinner('Mengambil data bursa...'):
-        watchlist = ["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "GOTO.JK", "ADRO.JK", "ANTM.JK"]
-        results = [get_fast_data(s) for s in watchlist]
-        results = [r for r in results if r is not None]
-        
-        if results:
-            st.table(pd.DataFrame(results))
-        else:
-            st.error("Gagal mengambil data. Coba lagi nanti.")
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">EPS (Laba Per Saham)</label>
+                    <input type="number" id="eps" placeholder="Contoh: 150" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Estimasi Pertumbuhan Laba (g) %</label>
+                    <input type="number" id="growth" placeholder="Contoh: 10" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Harga Pasar Saat Ini (Rp)</label>
+                    <input type="number" id="currentPrice" placeholder="Contoh: 2500" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button onclick="calculate()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 transition">Hitung Nilai Intrinsik</button>
+            </div>
 
-# --- MENU NAVIGASI BAWAH (BISA DIKLIK) ---
-st.markdown("<br><br><br>", unsafe_allow_html=True) # Ruang agar tidak tertutup menu
-m1, m2, m3, m4, m5 = st.columns(5)
+            <div id="resultCard" class="result-card mt-8 border-t pt-6">
+                <div class="text-center">
+                    <p class="text-gray-600 uppercase text-xs tracking-widest font-semibold">Harga Wajar Saham:</p>
+                    <h2 id="fairValueDisplay" class="text-4xl font-extrabold text-blue-600 mt-2">Rp 0</h2>
+                    
+                    <div id="badge" class="mt-4 inline-block px-4 py-1 rounded-full text-white font-bold text-sm">
+                        Status Saham
+                    </div>
 
-with m1:
-    if st.button("☰\nMenu"): st.toast("Menu dibuka")
-with m2:
-    if st.button("🏠\nHome"): st.rerun()
-with m3:
-    if st.button("🔍\nCari"): st.toast("Fitur Cari segera hadir")
-with m4:
-    if st.button("⭐\nWatch"): st.toast("Membuka Watchlist")
-with m5:
-    if st.button("👤\nLogin"): st.toast("Menghubungkan ke Google...")
+                    <p id="description" class="mt-4 text-sm text-gray-600 px-4"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            // Ambil Input
+            const eps = parseFloat(document.getElementById('eps').value);
+            const growth = parseFloat(document.getElementById('growth').value);
+            const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+            const yieldRate = 4.4; // SBN/Bond Yield rata-rata standar
+
+            if (isNaN(eps) || isNaN(growth) || isNaN(currentPrice)) {
+                alert("Mohon isi semua data dengan angka.");
+                return;
+            }
+
+            // Rumus Graham: V = EPS * (8.5 + 2g) * 4.4 / Yield
+            // Karena Yield saat ini bervariasi, kita asumsikan 6.5 (rata-rata bunga deposito/obligasi)
+            const currentYield = 6.5; 
+            const fairValue = (eps * (8.5 + 2 * growth) * yieldRate) / currentYield;
+
+            // Tampilkan Hasil
+            const resultCard = document.getElementById('resultCard');
+            const fairValueDisplay = document.getElementById('fairValueDisplay');
+            const badge = document.getElementById('badge');
+            const description = document.getElementById('description');
+
+            resultCard.style.display = 'block';
+            fairValueDisplay.innerText = "Rp " + Math.round(fairValue).toLocaleString('id-ID');
+
+            // Logika Status
+            const marginOfSafety = ((fairValue - currentPrice) / fairValue) * 100;
+
+            if (currentPrice < fairValue) {
+                badge.innerText = "UNDERVALUED (MURAH)";
+                badge.className = "mt-4 inline-block px-4 py-1 rounded-full text-white font-bold text-sm bg-green-500";
+                description.innerText = `Harga saat ini lebih murah dari harga wajarnya. Ada potensi Margin of Safety sebesar ${Math.round(marginOfSafety)}%.`;
+            } else {
+                badge.innerText = "OVERVALUED (MAHAL)";
+                badge.className = "mt-4 inline-block px-4 py-1 rounded-full text-white font-bold text-sm bg-red-500";
+                description.innerText = "Harga saat ini sudah melampaui harga wajar. Berhati-hatilah untuk melakukan pembelian.";
+            }
+        </div>
+    </script>
+</body>
+</html>
