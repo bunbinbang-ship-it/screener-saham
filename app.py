@@ -3,70 +3,92 @@ import yfinance as yf
 import pandas_ta as ta
 import pandas as pd
 
-# Konfigurasi Tampilan
-st.set_page_config(layout="wide", page_title="SAHAM KU")
+# Konfigurasi Dasar
+st.set_page_config(layout="wide", page_title="SAHAMKU")
 
-# CSS untuk desain teks 90px dan Menu Bawah (Sticky Navigation)
+# CSS untuk desain satu baris dan Menu Bawah
 st.markdown("""
     <style>
-    /* Judul Besar */
-    .judul-utama {
-        font-size: 90px;
+    /* Membuat tulisan SAHAMKU satu baris */
+    .judul-sahamku {
+        font-size: clamp(40px, 10vw, 80px); /* Ukuran fleksibel agar tetap satu baris */
         font-weight: bold;
         text-align: center;
-        margin-top: 15vh;
         color: #58a6ff;
+        margin-top: 50px;
+        white-space: nowrap;
     }
     
-    /* Menu Navigasi Bawah */
-    .footer-menu {
+    /* Navigasi Bawah yang tetap di tempat (Sticky) */
+    .stBottomBlock {
         position: fixed;
-        left: 0;
         bottom: 0;
-        width: 100%;
-        background-color: #161b22;
-        color: white;
-        text-align: center;
-        padding: 10px 0;
-        display: flex;
-        justify-content: space-around;
-        border-top: 1px solid #30363d;
-        z-index: 999;
+        background: #161b22;
+        padding: 10px;
+        z-index: 100;
     }
     
-    .menu-item {
-        font-size: 12px;
-        cursor: pointer;
-    }
-    
-    /* Ruang kosong agar konten tidak tertutup menu */
-    .spacer { margin-bottom: 100px; }
+    /* Sembunyikan footer bawaan streamlit agar bersih */
+    footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
-# --- TAMPILAN DEPAN ---
-st.markdown('<div class="judul-utama">SAHAM KU</div>', unsafe_allow_html=True)
+# --- HEADER ---
+st.markdown('<div class="judul-sahamku">SAHAMKU</div>', unsafe_allow_html=True)
+st.write("<p style='text-align: center; color: gray;'>Smart Analysis & Portfolio</p>", unsafe_allow_html=True)
 
-# Tombol Scan Utama di Tengah
+# --- FUNGSI ANALISIS CEPAT ---
+def get_fast_data(symbol):
+    try:
+        # Mengambil hanya 40 hari agar super cepat
+        df = yf.download(symbol, period="40d", interval="1d", progress=False, threads=False)
+        if df.empty: return None
+        
+        df['RSI'] = ta.rsi(df['Close'], length=14)
+        df['EMA20'] = ta.ema(df['Close'], length=20)
+        
+        last = df.iloc[-1]
+        price = float(last['Close'])
+        rsi_val = float(last['RSI'])
+        ema_val = float(last['EMA20'])
+        
+        if rsi_val < 35: signal = "🟢 BUY"
+        elif rsi_val > 65: signal = "🔴 SELL"
+        elif price > ema_val: signal = "🟡 HOLD"
+        else: signal = "⚪ WAIT"
+            
+        return {
+            "Emiten": symbol.replace(".JK", ""),
+            "Harga": f"Rp {int(price):,}",
+            "RSI": round(rsi_val, 1),
+            "Sinyal": signal
+        }
+    except: return None
+
+# --- TOMBOL ANALISIS ---
 st.markdown("<br>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns([1,1,1])
-with col2:
-    if st.button('🚀 Mulai Analisis Saham'):
-        st.write("Sedang memproses data...")
-        # (Logika analisis Anda di sini)
+if st.button('🚀 JALANKAN SCAN CEPAT', use_container_width=True):
+    with st.spinner('Mengambil data bursa...'):
+        watchlist = ["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "GOTO.JK", "ADRO.JK", "ANTM.JK"]
+        results = [get_fast_data(s) for s in watchlist]
+        results = [r for r in results if r is not None]
+        
+        if results:
+            st.table(pd.DataFrame(results))
+        else:
+            st.error("Gagal mengambil data. Coba lagi nanti.")
 
-# Memberi ruang di bawah agar tidak tertutup menu
-st.markdown('<div class="spacer"></div>', unsafe_allow_html=True)
+# --- MENU NAVIGASI BAWAH (BISA DIKLIK) ---
+st.markdown("<br><br><br>", unsafe_allow_html=True) # Ruang agar tidak tertutup menu
+m1, m2, m3, m4, m5 = st.columns(5)
 
-# --- MENU NAVIGASI BAWAH (Simulasi Visual) ---
-st.markdown("""
-    <div class="footer-menu">
-        <div class="menu-item">☰<br>Menu</div>
-        <div class="menu-item">🏠<br>Home</div>
-        <div class="menu-item">🔍<br>Cari</div>
-        <div class="menu-item">⭐<br>Watchlist</div>
-        <div class="menu-item">📖<br>Jurnal</div>
-        <div class="menu-item">👤<br>Google Login</div>
-    </div>
-    """, unsafe_allow_html=True)      
-    
+with m1:
+    if st.button("☰\nMenu"): st.toast("Menu dibuka")
+with m2:
+    if st.button("🏠\nHome"): st.rerun()
+with m3:
+    if st.button("🔍\nCari"): st.toast("Fitur Cari segera hadir")
+with m4:
+    if st.button("⭐\nWatch"): st.toast("Membuka Watchlist")
+with m5:
+    if st.button("👤\nLogin"): st.toast("Menghubungkan ke Google...")
