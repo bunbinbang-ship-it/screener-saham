@@ -1,2 +1,0 @@
-# screener-saham
-IHSG
